@@ -33,18 +33,15 @@ class Event {
     }
 }
 class Validator {
-    // стандартные валидаторы, возможны дочерние классы на отдельные формы
-
-    static validateEmail(mail) {
-        // language=JSRegexp,
-        //
-        // только 1 собака,
-        // перед собакой, после нее и после первой точки любые символы
-        return mail.match(/@/g).length === 1
-            && mail.match(/.+@.+\..+/g).length === 1
-    }
-    static validatePassword(password) {
-        return password.length > 8
+    static validators = {
+        email: (val) => val.match(/@/g)
+                     && val.match(/@/g).length === 1
+                     && val.match(/.+@.+\..+/g)
+                     && val.match(/.+@.+\..+/g).length === 1,
+        password: (val) => val.length > 8
+    };
+    static validate(prop, value) {
+        return Validator.validators[prop](value);
     }
 }
 
@@ -53,15 +50,10 @@ class LoginForm extends React.Component {
         super(props);
         this.state = {
             email: "",
-            password: "",
-            emailIsValid: "",
-            passwordIsValid: "",
-            formIsValid: true
+            password: ""
         };
         this.changeState = this.changeState.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
-        this.changeMail = this.changeMail.bind(this);
-        this.changePassword = this.changePassword.bind(this);
     }
     changeState(event) {
         const target = event.target;
@@ -71,19 +63,22 @@ class LoginForm extends React.Component {
         this.setState({
             [name]: value
         });
-    }
-    changeMail() {
-        this.changeState();
-        this.state.emailIsValid = Validator.validateEmail(this.state.email);
-        this.state.formIsValid = this.state.emailIsValid && this.state.passwordIsValid;
-    }
-    changePassword() {
-        this.changeState();
-        this.state.passwordIsValid = Validator.validatePassword(this.state.password);
-        this.state.formIsValid = this.state.emailIsValid && this.state.passwordIsValid;
+
+        if (Validator.validate(name, value)) {
+            target.style.backgroundColor = '#fff';
+        } else {
+            target.style.backgroundColor = '#fc6262';
+        }
     }
     handleSubmit(event) {
         event.preventDefault();
+        for (let key in this.state) {
+            if (!this.state.hasOwnProperty(key)) continue;
+
+            if (Validator.validate(key, this.state[key])) continue;
+            return;
+        }
+
         let xhr = new XMLHttpRequest();
 
         const body = {
@@ -108,7 +103,6 @@ class LoginForm extends React.Component {
         };
 
         xhr.send(JSON.stringify(body));
-        return false;
     }
 
     render() {
@@ -120,8 +114,7 @@ class LoginForm extends React.Component {
                         name="email"
                         type="text"
                         value={this.state.email}
-                        onChange={this.changeState}
-                        style={this.state.emailIsValid ? {} : {background: '#fc9d9d'}}/>
+                        onChange={this.changeState} />
                 </label>
                 <br /> <br />
                 <label>
@@ -130,12 +123,10 @@ class LoginForm extends React.Component {
                         name="password"
                         type="password"
                         value={this.state.password}
-                        onChange={this.changeState}
-                        style={this.state.emailIsValid ? {} : {background: '#fc9d9d'}}/>
+                        onChange={this.changeState} />
                 </label>
                 <br /> <br />
-                <button onClick={this.handleSubmit}
-                        disabled={!this.state.formIsValid}>
+                <button onClick={this.handleSubmit}>
                     Submit
                 </button>
             </form>
